@@ -17,4 +17,8 @@ export const API = {
     PRODUCTS: "/api/seller/products",
     PRODUCT: (id: string) => `/api/seller/products/${id}`,
   },
+  CATEGORIES: {
+    GET_ALL: "/api/categories",
+    GET_BY_ID: (id: string) => `/api/categories/${id}`,
+  },
 };

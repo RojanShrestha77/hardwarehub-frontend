@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -56,7 +56,7 @@ export function Navbar() {
           : "bg-[#0a0a0a] border-b border-border/50"
       )}
     >
-      <div className="max-w-7xl mx-auto px-4 sm:px-6">
+      <div className="w-full max-w-[1520px] mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center h-16 gap-4">
 
           {/* Logo */}
@@ -233,3 +233,4 @@ export function Navbar() {
     </header>
   );
 }
+

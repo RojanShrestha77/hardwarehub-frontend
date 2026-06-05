@@ -1,4 +1,4 @@
-// SERVER COMPONENT — no "use client"
+﻿// SERVER COMPONENT — no "use client"
 // Fetches data at request time using fetch() with cache: 'force-cache'.
 // Next.js automatically shows loading.tsx while this page streams in.
 
@@ -43,7 +43,7 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
 // Inline fallback for the Suspense boundary inside this server component
 function ProductsGridSkeleton() {
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
+    <div className="w-full max-w-[1520px] mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <div className="h-8 w-40 skeleton rounded mb-6" />
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5">
         {Array.from({ length: 6 }).map((_, i) => <ProductCardSkeleton key={i} />)}
@@ -51,3 +51,4 @@ function ProductsGridSkeleton() {
     </div>
   );
 }
+

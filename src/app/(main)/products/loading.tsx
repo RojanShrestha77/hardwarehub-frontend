@@ -1,8 +1,8 @@
-import { ProductCardSkeleton } from "@/components/products/ProductCard";
+﻿import { ProductCardSkeleton } from "@/components/products/ProductCard";
 
 export default function ProductsLoading() {
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
+    <div className="max-w-7xl mx-auto px-0 lg:px-6 py-8">
 
       {/* Header skeleton */}
       <div className="mb-6">
@@ -56,3 +56,4 @@ export default function ProductsLoading() {
     </div>
   );
 }
+

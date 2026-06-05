@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect } from "react";
 import { useSelector, useDispatch } from "react-redux";
@@ -41,7 +41,7 @@ export default function CartPage() {
 
   if (loading && items.length === 0) {
     return (
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-20 flex justify-center">
+      <div className="w-full max-w-[1520px] mx-auto px-4 sm:px-6 lg:px-8 py-20 flex justify-center">
         <span className="h-8 w-8 rounded-full border-2 border-accent/30 border-t-accent animate-spin" />
       </div>
     );
@@ -49,7 +49,7 @@ export default function CartPage() {
 
   if (items.length === 0) {
     return (
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-20 flex flex-col items-center text-center">
+      <div className="w-full max-w-[1520px] mx-auto px-4 sm:px-6 lg:px-8 py-20 flex flex-col items-center text-center">
         <ShoppingBag size={64} className="text-muted mb-6" />
         <h1 className="text-2xl font-bold mb-2">Your cart is empty</h1>
         <p className="text-muted mb-8 max-w-sm">Browse our catalog to find the perfect components.</p>
@@ -59,7 +59,7 @@ export default function CartPage() {
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
+    <div className="w-full max-w-[1520px] mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold">Your Cart</h1>
@@ -207,3 +207,4 @@ export default function CartPage() {
     </div>
   );
 }
+

@@ -1,5 +1,7 @@
+﻿"use client";
+
 import Link from "next/link";
-import { Cpu, Mail, Phone, MapPin } from "lucide-react";
+import { Wrench, Mail } from "lucide-react";
 
 const GithubIcon = ({ size = 15 }: { size?: number }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor">
@@ -19,64 +21,50 @@ const FacebookIcon = ({ size = 15 }: { size?: number }) => (
   </svg>
 );
 
-const FOOTER_LINKS = {
-  Products: [
-    { label: "Graphics Cards (GPU)", href: "/products?category=GPU" },
-    { label: "Processors (CPU)",     href: "/products?category=CPU" },
-    { label: "Memory (RAM)",         href: "/products?category=RAM" },
-    { label: "Storage (SSD/HDD)",    href: "/products?category=Storage" },
-    { label: "Motherboards",         href: "/products?category=Motherboard" },
-    { label: "Power Supplies",       href: "/products?category=PSU" },
-  ],
-  Support: [
-    { label: "FAQ",              href: "/faq" },
-    { label: "Warranty Policy",  href: "/warranty" },
-    { label: "Return Policy",    href: "/returns" },
-    { label: "Track Order",      href: "/orders" },
-    { label: "Contact Us",       href: "/contact" },
-  ],
-  Company: [
-    { label: "About HardwareHub", href: "/about" },
-    { label: "Careers",           href: "/careers" },
-    { label: "Privacy Policy",    href: "/privacy" },
-    { label: "Terms of Service",  href: "/terms" },
-  ],
-};
-
 export function Footer() {
   return (
-    <footer className="bg-surface border-t border-border mt-auto" role="contentinfo">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-12">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-10">
+    <footer className="bg-[#0d0d0d] border-t border-[#1a1a1a]" role="contentinfo">
+      <div className="w-full max-w-[1520px] mx-auto px-4 sm:px-6 lg:px-8 py-14">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10">
 
-          {/* Brand column */}
-          <div className="lg:col-span-2">
-            <Link href="/" className="inline-flex items-center gap-2 group mb-4">
-              <span className="flex items-center justify-center w-8 h-8 rounded-md bg-accent group-hover:bg-accent-hover transition-colors">
-                <Cpu size={18} className="text-white" />
-              </span>
-              <span className="font-bold text-lg">
-                Hardware<span className="text-accent">Hub</span>
+          {/* Brand */}
+          <div>
+            <Link href="/" className="inline-flex items-center gap-2 mb-5">
+              <div className="flex items-center justify-center w-8 h-8 bg-accent">
+                <Wrench size={16} className="text-white" />
+              </div>
+              <span className="font-black text-base uppercase tracking-wide text-white">
+                HardwareHub
               </span>
             </Link>
-            <p className="text-sm text-muted leading-relaxed max-w-xs mb-6">
-              Nepal&apos;s premier destination for PC components, peripherals, and hardware. Quality products, expert advice, fast delivery.
+            <p className="text-[#666] text-sm leading-relaxed max-w-xs">
+              Industrial supply chain for the modern trade professional. Quality, reliability, and precision delivered to your site.
             </p>
-            <div className="space-y-2 text-sm text-muted">
-              <div className="flex items-center gap-2">
-                <MapPin size={14} className="text-accent shrink-0" />
-                <span>Newroad, Kathmandu, Nepal</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <Phone size={14} className="text-accent shrink-0" />
-                <a href="tel:+977-1-XXXXXXX" className="hover:text-white transition-colors">+977-1-XXXXXXX</a>
-              </div>
-              <div className="flex items-center gap-2">
-                <Mail size={14} className="text-accent shrink-0" />
-                <a href="mailto:hello@hardwarehub.np" className="hover:text-white transition-colors">hello@hardwarehub.np</a>
-              </div>
-            </div>
-            <div className="flex items-center gap-3 mt-6">
+          </div>
+
+          {/* Support */}
+          <div>
+            <h3 className="text-[11px] font-black uppercase tracking-[0.2em] text-white mb-5">Support</h3>
+            <ul className="space-y-3">
+              {[
+                { label: "Warranty",          href: "/warranty" },
+                { label: "Technical Support", href: "/contact"  },
+                { label: "Shipping Policy",   href: "/shipping" },
+                { label: "Tool Rentals",      href: "/rentals"  },
+              ].map(({ label, href }) => (
+                <li key={label}>
+                  <Link href={href} className="text-sm text-[#666] hover:text-accent transition-colors">
+                    {label}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          {/* Connect */}
+          <div>
+            <h3 className="text-[11px] font-black uppercase tracking-[0.2em] text-white mb-5">Connect</h3>
+            <div className="flex items-center gap-3 mb-5">
               {[
                 { icon: GithubIcon,   href: "#", label: "GitHub"   },
                 { icon: XIcon,        href: "#", label: "Twitter"  },
@@ -86,46 +74,61 @@ export function Footer() {
                   key={label}
                   href={href}
                   aria-label={label}
-                  className="w-8 h-8 flex items-center justify-center rounded-md bg-[#0a0a0a] border border-border text-muted hover:text-accent hover:border-accent transition-colors"
+                  className="w-8 h-8 flex items-center justify-center bg-[#1a1a1a] border border-[#2a2a2a] text-[#666] hover:text-accent hover:border-accent transition-colors"
                 >
                   <Icon size={15} />
                 </a>
               ))}
             </div>
+            <p className="text-[#666] text-xs leading-relaxed mb-3">
+              Subscribe for technical bulletins and trade offers.
+            </p>
+            <form className="flex" onSubmit={(e) => e.preventDefault()}>
+              <input
+                type="email"
+                placeholder="Email"
+                className="flex-1 bg-[#1a1a1a] border border-[#2a2a2a] text-white text-sm px-3 py-2 outline-none focus:border-accent placeholder:text-[#444] min-w-0"
+              />
+              <button
+                type="submit"
+                className="bg-accent hover:bg-accent-hover px-3 py-2 text-white transition-colors"
+                aria-label="Subscribe"
+              >
+                <Mail size={14} />
+              </button>
+            </form>
           </div>
 
-          {/* Link columns */}
-          {Object.entries(FOOTER_LINKS).map(([title, links]) => (
-            <div key={title}>
-              <h3 className="text-sm font-semibold text-white mb-4">{title}</h3>
-              <ul className="space-y-2.5">
-                {links.map(({ label, href }) => (
-                  <li key={label}>
-                    <Link
-                      href={href}
-                      className="text-sm text-muted hover:text-accent transition-colors"
-                    >
-                      {label}
-                    </Link>
-                  </li>
-                ))}
-              </ul>
+          {/* Headquarters */}
+          <div>
+            <h3 className="text-[11px] font-black uppercase tracking-[0.2em] text-white mb-5">Headquarters</h3>
+            <div className="space-y-2 text-sm text-[#666]">
+              <p>Newroad, Kathmandu</p>
+              <p>Nepal 44600</p>
+              <p className="pt-2">
+                <a href="tel:+977-1-4000000" className="hover:text-accent transition-colors">
+                  +977-1-4000000
+                </a>
+              </p>
+              <p>
+                <a href="mailto:hello@hardwarehub.np" className="hover:text-accent transition-colors">
+                  hello@hardwarehub.np
+                </a>
+              </p>
             </div>
-          ))}
+          </div>
+
         </div>
       </div>
 
-      {/* Bottom bar */}
-      <div className="border-t border-border">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-muted">
-          <p>© {new Date().getFullYear()} HardwareHub. All rights reserved.</p>
-          <div className="flex items-center gap-4">
-            <span>🔒 Secure Checkout</span>
-            <span>🚚 Free Delivery over Rs. 5000</span>
-            <span>↩ 15-Day Returns</span>
-          </div>
+      <div className="border-t border-[#1a1a1a]">
+        <div className="w-full max-w-[1520px] mx-auto px-4 sm:px-6 lg:px-8 py-4 text-center">
+          <p className="text-[11px] uppercase tracking-[0.15em] text-[#444] font-semibold">
+            © {new Date().getFullYear()} HardwareHub Industrial Supply. All Rights Reserved.
+          </p>
         </div>
       </div>
     </footer>
   );
 }
+

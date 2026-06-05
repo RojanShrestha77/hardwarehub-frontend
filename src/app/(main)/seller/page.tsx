@@ -1,7 +1,13 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useState } from "react";
 import type { Product, SellerProductData } from "@/lib/api/seller";
+import {
+  getMyProductsAction,
+  handleCreateProduct,
+  handleUpdateProduct,
+  deleteProductAction,
+} from "@/lib/actions/seller/product.action";
 import { Plus, Edit, Trash2, Package, DollarSign, Loader2 } from "lucide-react";
 
 export default function SellerDashboardPage() {
@@ -18,11 +24,9 @@ export default function SellerDashboardPage() {
   const fetchProducts = async () => {
     try {
       setLoading(true);
-      const res = await fetch("/api/seller/products", { cache: "no-store" });
-      const json = await res.json();
-      if (!res.ok) throw new Error(json.message || "Failed to fetch products");
-      const data = json.data ?? [];
-      setProducts(data);
+      const result = await getMyProductsAction();
+      if (!result.success) throw new Error(result.message);
+      setProducts(result.data ?? []);
       setError("");
     } catch (err: any) {
       setError(err.message);
@@ -33,13 +37,9 @@ export default function SellerDashboardPage() {
 
   const handleDelete = async (id: string) => {
     if (!confirm("Are you sure you want to delete this product?")) return;
-    
     try {
-      const res = await fetch(`/api/seller/products/${id}`, { method: "DELETE" });
-      if (!res.ok) {
-        const json = await res.json();
-        throw new Error(json.message || "Failed to delete product");
-      }
+      const result = await deleteProductAction(id);
+      if (!result.success) throw new Error(result.message);
       setProducts(products.filter(p => p.id !== id));
     } catch (err: any) {
       alert(err.message);
@@ -65,7 +65,7 @@ export default function SellerDashboardPage() {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8 max-w-7xl">
+    <div className="w-full max-w-[1520px] mx-auto px-4 sm:px-6 lg:px-8 py-8">
       {/* Header */}
       <div className="flex items-center justify-between mb-8">
         <div>
@@ -316,14 +316,11 @@ function ProductFormModal({
         submitData.append("image", imageFile);
       }
 
-      const url = product
-        ? `/api/seller/products/${product.id}`
-        : "/api/seller/products";
-      const method = product ? "PATCH" : "POST";
+      const result = product
+        ? await handleUpdateProduct(product.id, submitData)
+        : await handleCreateProduct(submitData);
 
-      const res = await fetch(url, { method, body: submitData });
-      const json = await res.json();
-      if (!res.ok) throw new Error(json.message || "Failed to save product");
+      if (!result.success) throw new Error(result.message);
       onSuccess();
     } catch (err: any) {
       setError(err.message);
@@ -484,3 +481,4 @@ function ProductFormModal({
     </div>
   );
 }
+

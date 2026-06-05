@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useMemo, useState } from "react";
 import { SlidersHorizontal, X, ChevronDown, LayoutGrid, List } from "lucide-react";
@@ -88,51 +88,55 @@ export function ProductsClient({ initialProducts, initialSearch = "", initialCat
   function Sidebar() {
     return (
       <aside className="w-full space-y-6" aria-label="Product filters">
+
+        {/* Search */}
         <div>
-          <label className="text-sm font-semibold text-white block mb-2">Search</label>
+          <label className="text-[11px] font-black uppercase tracking-[0.15em] text-white block mb-2">Search</label>
           <input
             type="search"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Brand, model…"
-            className="w-full h-9 px-3 bg-[#0a0a0a] border border-border rounded-md text-sm text-white placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-accent transition-all"
+            className="w-full h-9 px-3 bg-[#0a0a0a] border border-[#222] text-sm text-white placeholder:text-[#444] focus:outline-none focus:border-accent transition-all"
             aria-label="Search products"
           />
         </div>
 
+        {/* Category */}
         <div>
-          <h3 className="text-sm font-semibold text-white mb-3">Category</h3>
-          <div className="space-y-1.5">
+          <h3 className="text-[11px] font-black uppercase tracking-[0.15em] text-white mb-3">Category</h3>
+          <div className="space-y-2">
             {CATEGORIES.map((cat) => (
-              <label key={cat.name} className="flex items-center gap-2.5 cursor-pointer group">
+              <label key={cat.name} className="flex items-center gap-3 cursor-pointer group">
                 <input
                   type="checkbox"
                   checked={selectedCategories.includes(cat.name)}
                   onChange={() => toggleCategory(cat.name)}
-                  className="w-4 h-4 rounded border-border bg-surface accent-accent cursor-pointer"
+                  className="w-4 h-4 border-[#333] bg-[#111] accent-accent cursor-pointer"
                 />
-                <span className="text-sm text-muted group-hover:text-white transition-colors flex-1">
+                <span className="text-sm text-[#888] group-hover:text-white transition-colors flex-1">
                   {cat.name}
                 </span>
-                <span className="text-xs text-muted-dark">{cat.count}</span>
+                <span className="text-xs text-[#444]">{cat.count}</span>
               </label>
             ))}
           </div>
         </div>
 
+        {/* Price Range */}
         <div>
-          <h3 className="text-sm font-semibold text-white mb-3">Price Range</h3>
-          <div className="space-y-1.5">
+          <h3 className="text-[11px] font-black uppercase tracking-[0.15em] text-white mb-3">Price Range</h3>
+          <div className="space-y-2">
             {PRICE_RANGES.map((range, idx) => (
-              <label key={idx} className="flex items-center gap-2.5 cursor-pointer group">
+              <label key={idx} className="flex items-center gap-3 cursor-pointer group">
                 <input
                   type="radio"
                   name="price-range"
                   checked={selectedPriceRange === idx}
                   onChange={() => setSelectedPriceRange(selectedPriceRange === idx ? null : idx)}
-                  className="w-4 h-4 border-border bg-surface accent-accent cursor-pointer"
+                  className="w-4 h-4 border-[#333] bg-[#111] accent-accent cursor-pointer"
                 />
-                <span className="text-sm text-muted group-hover:text-white transition-colors">
+                <span className="text-sm text-[#888] group-hover:text-white transition-colors">
                   {range.label}
                 </span>
               </label>
@@ -140,65 +144,77 @@ export function ProductsClient({ initialProducts, initialSearch = "", initialCat
           </div>
         </div>
 
+        {/* In Stock */}
         <div>
-          <label className="flex items-center gap-2.5 cursor-pointer group">
+          <label className="flex items-center gap-3 cursor-pointer group">
             <input
               type="checkbox"
               checked={inStockOnly}
               onChange={(e) => setInStockOnly(e.target.checked)}
-              className="w-4 h-4 rounded border-border bg-surface accent-accent cursor-pointer"
+              className="w-4 h-4 border-[#333] bg-[#111] accent-accent cursor-pointer"
             />
-            <span className="text-sm text-muted group-hover:text-white transition-colors font-medium">
+            <span className="text-sm text-[#888] group-hover:text-white transition-colors font-medium">
               In Stock Only
             </span>
           </label>
         </div>
 
         {activeFilterCount > 0 && (
-          <Button variant="ghost" size="sm" onClick={clearFilters} className="w-full text-muted-dark hover:text-white">
-            <X size={14} /> Clear all filters ({activeFilterCount})
-          </Button>
+          <button onClick={clearFilters} className="w-full flex items-center justify-center gap-1.5 border border-[#333] hover:border-accent text-[#555] hover:text-accent text-[11px] font-black uppercase tracking-wider py-2 transition-colors">
+            <X size={12} /> Clear filters ({activeFilterCount})
+          </button>
         )}
       </aside>
     );
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
-      <div className="mb-6">
-        <h1 className="text-2xl sm:text-3xl font-bold">All Products</h1>
-        <p className="text-muted mt-1">
-          {filteredProducts.length} product{filteredProducts.length !== 1 ? "s" : ""} found
-        </p>
-      </div>
+    <div className="w-full max-w-[1520px] mx-auto px-4 sm:px-6 lg:px-8 py-8">
 
-      {/* Active filter chips */}
-      {activeFilterCount > 0 && (
-        <div className="flex flex-wrap gap-2 mb-5" role="list" aria-label="Active filters">
-          {selectedCategories.map((cat) => (
-            <button key={cat} role="listitem" onClick={() => toggleCategory(cat)}
-              className="inline-flex items-center gap-1.5 h-7 px-3 rounded-full bg-accent-muted border border-accent/30 text-xs font-medium text-accent hover:bg-accent hover:text-white transition-all">
-              {cat} <X size={11} />
-            </button>
-          ))}
-          {selectedPriceRange !== null && (
-            <button role="listitem" onClick={() => setSelectedPriceRange(null)}
-              className="inline-flex items-center gap-1.5 h-7 px-3 rounded-full bg-accent-muted border border-accent/30 text-xs font-medium text-accent hover:bg-accent hover:text-white transition-all">
-              {PRICE_RANGES[selectedPriceRange].label} <X size={11} />
-            </button>
-          )}
-          {inStockOnly && (
-            <button role="listitem" onClick={() => setInStockOnly(false)}
-              className="inline-flex items-center gap-1.5 h-7 px-3 rounded-full bg-accent-muted border border-accent/30 text-xs font-medium text-accent hover:bg-accent hover:text-white transition-all">
-              In Stock <X size={11} />
-            </button>
-          )}
+      {/* ── Page header ── */}
+      <div className="border-b border-[#1e1e1e] pb-6 mb-6">
+        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3">
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-black uppercase tracking-tight text-white">
+              {selectedCategories.length === 1 ? selectedCategories[0] : "All"} Products
+            </h1>
+            <p className="text-[#555] text-sm mt-1">
+              Precision-engineered equipment for high-demand applications.
+            </p>
+          </div>
+          <p className="text-sm text-[#555] shrink-0">
+            Showing <span className="text-accent font-bold">{filteredProducts.length}</span> Products
+          </p>
         </div>
-      )}
+
+        {/* Active filter chips */}
+        {activeFilterCount > 0 && (
+          <div className="flex flex-wrap gap-2 mt-4" role="list" aria-label="Active filters">
+            {selectedCategories.map((cat) => (
+              <button key={cat} role="listitem" onClick={() => toggleCategory(cat)}
+                className="inline-flex items-center gap-1.5 h-7 px-3 bg-[#1a1a1a] border border-accent/40 text-xs font-bold text-accent hover:bg-accent hover:text-white transition-all">
+                {cat} <X size={11} />
+              </button>
+            ))}
+            {selectedPriceRange !== null && (
+              <button role="listitem" onClick={() => setSelectedPriceRange(null)}
+                className="inline-flex items-center gap-1.5 h-7 px-3 bg-[#1a1a1a] border border-accent/40 text-xs font-bold text-accent hover:bg-accent hover:text-white transition-all">
+                {PRICE_RANGES[selectedPriceRange].label} <X size={11} />
+              </button>
+            )}
+            {inStockOnly && (
+              <button role="listitem" onClick={() => setInStockOnly(false)}
+                className="inline-flex items-center gap-1.5 h-7 px-3 bg-[#1a1a1a] border border-accent/40 text-xs font-bold text-accent hover:bg-accent hover:text-white transition-all">
+                In Stock <X size={11} />
+              </button>
+            )}
+          </div>
+        )}
+      </div>
 
       <div className="flex gap-8">
         {/* Desktop sidebar */}
-        <div className="hidden lg:block w-56 shrink-0">
+        <div className="hidden lg:block w-60 shrink-0">
           <div className="sticky top-24"><Sidebar /></div>
         </div>
 
@@ -247,7 +263,7 @@ export function ProductsClient({ initialProducts, initialSearch = "", initialCat
           ) : (
             <div className={twMerge(
               viewMode === "grid"
-                ? "grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5"
+                ? "grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4"
                 : "flex flex-col gap-4"
             )}>
               {filteredProducts.map((p) => <ProductCard key={p.id} product={p} />)}
@@ -281,3 +297,4 @@ export function ProductsClient({ initialProducts, initialSearch = "", initialCat
     </div>
   );
 }
+
