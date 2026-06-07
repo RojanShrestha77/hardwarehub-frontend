@@ -1,7 +1,7 @@
 import Link from "next/link";
-import { ArrowRight, Tag, Wrench, Package, Clock, ShieldCheck } from "lucide-react";
-import { handleGetCategories } from "@/lib/actions/category.action";
-import { PRODUCTS } from "@/lib/mock-data";
+import { ArrowRight, Tag, Wrench } from "lucide-react";
+import { getCategories } from "@/lib/api/categories";
+import { getProducts } from "@/lib/api/products";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 import { ProductCard } from "@/components/products/ProductCard";
@@ -27,20 +27,22 @@ const CATEGORY_CONFIGS = [
 ];
 
 const TOP_TRADES = [
-  { name: "Builder",     icon: "🔨", slug: "tools"       },
-  { name: "Electrician", icon: "⚡", slug: "electrical"  },
-  { name: "Plumber",     icon: "🔧", slug: "plumbing"    },
-  { name: "Landscaper",  icon: "🌿", slug: "landscaping" },
-  { name: "Concretor",   icon: "🏗️", slug: "concrete"   },
-  { name: "HVAC Tech",   icon: "❄️", slug: "hvac"        },
+  { name: "Power Tools",    icon: "⚡", slug: "power-tools"    },
+  { name: "Hand Tools",     icon: "🔨", slug: "hand-tools"     },
+  { name: "Electrical",     icon: "🔌", slug: "electrical-tools"},
+  { name: "Plumbing",       icon: "🪠", slug: "plumbing-tools" },
+  { name: "Woodworking",    icon: "🪵", slug: "woodworking-tools"},
+  { name: "Automotive",     icon: "🔧", slug: "automotive-tools"},
 ];
 
-const inner = "w-full max-w-[1520px] mx-auto px-4 sm:px-6 lg:px-6";
+const inner = "w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-6";
 
 export default async function HomePage() {
-  const categoryResult = await handleGetCategories();
-  const categories = categoryResult.data ?? [];
-  const dealProducts = PRODUCTS.filter((p) => p.originalPrice).slice(0, 4);
+  const [categories, allProducts] = await Promise.all([
+    getCategories(),
+    getProducts(),
+  ]);
+  const dealProducts = allProducts.filter((p) => p.originalPrice).slice(0, 4);
 
   return (
     <>

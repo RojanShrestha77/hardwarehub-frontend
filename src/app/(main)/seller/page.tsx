@@ -8,6 +8,7 @@ import {
   handleUpdateProduct,
   deleteProductAction,
 } from "@/lib/actions/seller/product.action";
+import { getAllCategories, type Category } from "@/lib/api/categories";
 import { Plus, Edit, Trash2, Package, DollarSign, Loader2 } from "lucide-react";
 
 export default function SellerDashboardPage() {
@@ -65,7 +66,7 @@ export default function SellerDashboardPage() {
   }
 
   return (
-    <div className="w-full max-w-[1520px] mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       {/* Header */}
       <div className="flex items-center justify-between mb-8">
         <div>
@@ -237,14 +238,14 @@ export default function SellerDashboardPage() {
 }
 
 // Product Form Modal Component
-function ProductFormModal({ 
-  product, 
-  onClose, 
-  onSuccess 
-}: { 
-  product: Product | null; 
-  onClose: () => void; 
-  onSuccess: () => void; 
+function ProductFormModal({
+  product,
+  onClose,
+  onSuccess
+}: {
+  product: Product | null;
+  onClose: () => void;
+  onSuccess: () => void;
 }) {
   const [formData, setFormData] = useState<SellerProductData>({
     name: product?.name || "",
@@ -258,12 +259,29 @@ function ProductFormModal({
     imageUrl: product?.imageUrl || "",
     specs: product?.specs || {},
   });
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [catLoading, setCatLoading] = useState(true);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string>(
     product?.imageUrl ? `http://localhost:5000${product.imageUrl}` : ""
   );
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
+
+  useEffect(() => {
+    getAllCategories()
+      .then((res) => {
+        const list: Category[] = Array.isArray(res) ? res : (res?.data ?? []);
+        setCategories(list);
+        // Pre-select first category if creating new and none set
+        if (!product && !formData.category && list.length > 0) {
+          setFormData((prev) => ({ ...prev, category: list[0].name }));
+        }
+      })
+      .catch(() => {})
+      .finally(() => setCatLoading(false));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -374,14 +392,25 @@ function ProductFormModal({
 
             <div>
               <label className="block text-sm font-medium text-white mb-1.5">Category *</label>
-              <input
-                type="text"
-                required
-                value={formData.category}
-                onChange={(e) => setFormData({...formData, category: e.target.value})}
-                className={inputClass}
-                placeholder="e.g., CPU"
-              />
+              {catLoading ? (
+                <div className={`${inputClass} flex items-center gap-2 text-muted`}>
+                  <Loader2 size={14} className="animate-spin" /> Loading categories…
+                </div>
+              ) : (
+                <select
+                  required
+                  value={formData.category}
+                  onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                  className={`${inputClass} cursor-pointer`}
+                >
+                  <option value="" disabled>Select a category</option>
+                  {categories.map((cat) => (
+                    <option key={cat.id} value={cat.name}>
+                      {cat.icon} {cat.name}
+                    </option>
+                  ))}
+                </select>
+              )}
             </div>
 
             <div>

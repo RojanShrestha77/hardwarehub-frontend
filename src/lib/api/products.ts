@@ -49,7 +49,7 @@ export async function getProducts(filters?: {
 
   const url = `${BASE_URL}${API.PRODUCTS.LIST}${params.toString() ? `?${params}` : ""}`;
 
-  const res = await fetch(url, { cache: "force-cache" });
+  const res = await fetch(url, { next: { revalidate: 30 } });
   if (!res.ok) throw new Error("Failed to fetch products");
 
   const json: ProductsResponse = await res.json();

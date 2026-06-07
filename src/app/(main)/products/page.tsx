@@ -4,6 +4,7 @@
 
 import { Suspense } from "react";
 import { getProducts } from "@/lib/api/products";
+import { getCategories } from "@/lib/api/categories";
 import { ProductsClient } from "./_components/ProductsClient";
 import { ProductCardSkeleton } from "@/components/products/ProductCard";
 
@@ -25,14 +26,13 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
 
   // fetch() with force-cache — cached at build time, never re-fetches unless
   // revalidated. Shows how RSC replaces getStaticProps from the Pages Router.
-  const products = await getProducts();
+  const [products, categories] = await Promise.all([getProducts(), getCategories()]);
 
   return (
-    // Suspense boundary: if a child component suspends (slow data fetch),
-    // the fallback is shown instead of blocking the whole page.
     <Suspense fallback={<ProductsGridSkeleton />}>
       <ProductsClient
         initialProducts={products}
+        categories={categories}
         initialSearch={params.search ?? ""}
         initialCategory={params.category ?? ""}
       />
@@ -43,7 +43,7 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
 // Inline fallback for the Suspense boundary inside this server component
 function ProductsGridSkeleton() {
   return (
-    <div className="w-full max-w-[1520px] mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <div className="h-8 w-40 skeleton rounded mb-6" />
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5">
         {Array.from({ length: 6 }).map((_, i) => <ProductCardSkeleton key={i} />)}

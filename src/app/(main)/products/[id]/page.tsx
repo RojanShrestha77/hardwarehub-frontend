@@ -9,7 +9,7 @@ import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { getProductById, getAllProductIds } from "@/lib/api/products";
 import { ProductDetailClient } from "./_components/ProductDetailClient";
-import { PRODUCTS } from "@/lib/mock-data";
+import { getProducts } from "@/lib/api/products";
 
 // ─── ISR: Revalidate every 60 seconds ────────────────────────────────────────
 // After 60s, the next visitor gets a fresh re-generated page.
@@ -53,8 +53,8 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
 
   if (!product) notFound();
 
-  // Related products: also static, fetched from the cached product list
-  const related = PRODUCTS.filter((p) => p.category === product.category && p.id !== product.id).slice(0, 4);
+  const allProducts = await getProducts();
+  const related = allProducts.filter((p) => p.category === product.category && p.id !== product.id).slice(0, 4);
 
   return (
     // Suspense allows the page shell to stream while slow parts (reviews etc.) load

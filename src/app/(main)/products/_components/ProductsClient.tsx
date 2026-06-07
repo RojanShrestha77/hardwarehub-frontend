@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { SlidersHorizontal, X, ChevronDown, LayoutGrid, List } from "lucide-react";
 import type { Product } from "@/lib/api/products";
-import { CATEGORIES } from "@/lib/mock-data";
+import type { Category } from "@/lib/api/categories";
 import { ProductCard, ProductCardSkeleton } from "@/components/products/ProductCard";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
@@ -16,25 +16,35 @@ const SORT_OPTIONS = [
   { value: "rating",     label: "Highest Rated"  },
 ];
 
-const PRICE_RANGES = [
-  { label: "Under Rs. 10,000",     min: 0,      max: 10000   },
-  { label: "Rs. 10,000 – 30,000",  min: 10000,  max: 30000   },
-  { label: "Rs. 30,000 – 60,000",  min: 30000,  max: 60000   },
-  { label: "Rs. 60,000 – 100,000", min: 60000,  max: 100000  },
-  { label: "Over Rs. 100,000",     min: 100000, max: Infinity },
-];
+const MAX_PRICE = 150000;
+const PRICE_STEP = 500;
 
 interface ProductsClientProps {
   initialProducts: Product[];
+  categories: Category[];
   initialSearch?: string;
   initialCategory?: string;
 }
 
-export function ProductsClient({ initialProducts, initialSearch = "", initialCategory = "" }: ProductsClientProps) {
-  const [selectedCategories, setSelectedCategories] = useState<string[]>(
-    initialCategory ? [initialCategory] : []
-  );
-  const [selectedPriceRange, setSelectedPriceRange] = useState<number | null>(null);
+export function ProductsClient({ initialProducts, categories, initialSearch = "", initialCategory = "" }: ProductsClientProps) {
+  const categoriesWithCount = useMemo(() => {
+    const counts: Record<string, number> = {};
+    for (const p of initialProducts) {
+      counts[p.category] = (counts[p.category] ?? 0) + 1;
+    }
+    return categories.map((cat) => ({ ...cat, count: counts[cat.name] ?? 0 }));
+  }, [initialProducts, categories]);
+
+  const [selectedCategories, setSelectedCategories] = useState<string[]>(() => {
+    if (!initialCategory) return [];
+    // URL may pass slug ("power-tools") or exact name ("Power Tools") — resolve to name
+    const match = categories.find(
+      (c) => c.name === initialCategory || c.slug === initialCategory
+    );
+    return [match ? match.name : initialCategory];
+  });
+  const [minPrice, setMinPrice] = useState(0);
+  const [maxPrice, setMaxPrice] = useState(MAX_PRICE);
   const [inStockOnly, setInStockOnly]   = useState(false);
   const [sortBy, setSortBy]             = useState("featured");
   const [searchQuery, setSearchQuery]   = useState(initialSearch);
@@ -53,9 +63,8 @@ export function ProductsClient({ initialProducts, initialSearch = "", initialCat
     if (selectedCategories.length > 0) {
       result = result.filter((p) => selectedCategories.includes(p.category));
     }
-    if (selectedPriceRange !== null) {
-      const range = PRICE_RANGES[selectedPriceRange];
-      result = result.filter((p) => p.price >= range.min && p.price <= range.max);
+    if (minPrice > 0 || maxPrice < MAX_PRICE) {
+      result = result.filter((p) => p.price >= minPrice && p.price <= maxPrice);
     }
     if (inStockOnly) {
       result = result.filter((p) => p.stock > 0);
@@ -66,23 +75,26 @@ export function ProductsClient({ initialProducts, initialSearch = "", initialCat
       case "rating":     result.sort((a, b) => Number(b.rating) - Number(a.rating)); break;
     }
     return result;
-  }, [initialProducts, searchQuery, selectedCategories, selectedPriceRange, inStockOnly, sortBy]);
+  }, [initialProducts, searchQuery, selectedCategories, minPrice, maxPrice, inStockOnly, sortBy]);
 
   const toggleCategory = (cat: string) =>
     setSelectedCategories((prev) =>
       prev.includes(cat) ? prev.filter((c) => c !== cat) : [...prev, cat]
     );
 
+  const hasPriceFilter = minPrice > 0 || maxPrice < MAX_PRICE;
+
   const clearFilters = () => {
     setSelectedCategories([]);
-    setSelectedPriceRange(null);
+    setMinPrice(0);
+    setMaxPrice(MAX_PRICE);
     setInStockOnly(false);
     setSearchQuery("");
   };
 
   const activeFilterCount =
     selectedCategories.length +
-    (selectedPriceRange !== null ? 1 : 0) +
+    (hasPriceFilter ? 1 : 0) +
     (inStockOnly ? 1 : 0);
 
   function Sidebar() {
@@ -104,9 +116,19 @@ export function ProductsClient({ initialProducts, initialSearch = "", initialCat
 
         {/* Category */}
         <div>
-          <h3 className="text-[11px] font-black uppercase tracking-[0.15em] text-white mb-3">Category</h3>
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-[11px] font-black uppercase tracking-[0.15em] text-white">Category</h3>
+            {selectedCategories.length > 0 && (
+              <button
+                onClick={() => setSelectedCategories([])}
+                className="text-[10px] font-black uppercase tracking-wider text-accent hover:text-accent-hover transition-colors"
+              >
+                Clear All
+              </button>
+            )}
+          </div>
           <div className="space-y-2">
-            {CATEGORIES.map((cat) => (
+            {categoriesWithCount.map((cat) => (
               <label key={cat.name} className="flex items-center gap-3 cursor-pointer group">
                 <input
                   type="checkbox"
@@ -115,7 +137,7 @@ export function ProductsClient({ initialProducts, initialSearch = "", initialCat
                   className="w-4 h-4 border-[#333] bg-[#111] accent-accent cursor-pointer"
                 />
                 <span className="text-sm text-[#888] group-hover:text-white transition-colors flex-1">
-                  {cat.name}
+                  {cat.icon} {cat.name}
                 </span>
                 <span className="text-xs text-[#444]">{cat.count}</span>
               </label>
@@ -123,24 +145,70 @@ export function ProductsClient({ initialProducts, initialSearch = "", initialCat
           </div>
         </div>
 
-        {/* Price Range */}
+        {/* Price Range Slider */}
         <div>
-          <h3 className="text-[11px] font-black uppercase tracking-[0.15em] text-white mb-3">Price Range</h3>
-          <div className="space-y-2">
-            {PRICE_RANGES.map((range, idx) => (
-              <label key={idx} className="flex items-center gap-3 cursor-pointer group">
-                <input
-                  type="radio"
-                  name="price-range"
-                  checked={selectedPriceRange === idx}
-                  onChange={() => setSelectedPriceRange(selectedPriceRange === idx ? null : idx)}
-                  className="w-4 h-4 border-[#333] bg-[#111] accent-accent cursor-pointer"
-                />
-                <span className="text-sm text-[#888] group-hover:text-white transition-colors">
-                  {range.label}
-                </span>
-              </label>
-            ))}
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-[11px] font-black uppercase tracking-[0.15em] text-white">Price Range</h3>
+            {hasPriceFilter && (
+              <button
+                onClick={() => { setMinPrice(0); setMaxPrice(MAX_PRICE); }}
+                className="text-[10px] font-black uppercase tracking-wider text-accent hover:text-accent-hover transition-colors"
+              >
+                Reset
+              </button>
+            )}
+          </div>
+
+          {/* Price labels */}
+          <div className="flex justify-between text-xs text-[#888] mb-4">
+            <span>Rs. {minPrice.toLocaleString()}</span>
+            <span>{maxPrice >= MAX_PRICE ? "Rs. 1,50,000+" : `Rs. ${maxPrice.toLocaleString()}`}</span>
+          </div>
+
+          {/* Dual-handle slider track */}
+          <div className="relative h-1 mx-2">
+            {/* Background track */}
+            <div className="absolute inset-0 bg-[#333] rounded-full" />
+            {/* Colored fill between thumbs */}
+            <div
+              className="absolute h-full bg-accent rounded-full"
+              style={{
+                left:  `${(minPrice / MAX_PRICE) * 100}%`,
+                right: `${(1 - maxPrice / MAX_PRICE) * 100}%`,
+              }}
+            />
+            {/* Min thumb input */}
+            <input
+              type="range"
+              min={0} max={MAX_PRICE} step={PRICE_STEP}
+              value={minPrice}
+              onChange={(e) => {
+                const v = Number(e.target.value);
+                setMinPrice(Math.min(v, maxPrice - PRICE_STEP));
+              }}
+              className="price-slider"
+              style={{ zIndex: minPrice >= MAX_PRICE * 0.9 ? 5 : 3 }}
+              aria-label="Minimum price"
+            />
+            {/* Max thumb input */}
+            <input
+              type="range"
+              min={0} max={MAX_PRICE} step={PRICE_STEP}
+              value={maxPrice}
+              onChange={(e) => {
+                const v = Number(e.target.value);
+                setMaxPrice(Math.max(v, minPrice + PRICE_STEP));
+              }}
+              className="price-slider"
+              style={{ zIndex: minPrice >= MAX_PRICE * 0.9 ? 3 : 5 }}
+              aria-label="Maximum price"
+            />
+          </div>
+
+          {/* Min/Max labels */}
+          <div className="flex justify-between text-[10px] text-[#444] mt-4">
+            <span>Rs. 0</span>
+            <span>Rs. 1,50,000+</span>
           </div>
         </div>
 
@@ -169,7 +237,7 @@ export function ProductsClient({ initialProducts, initialSearch = "", initialCat
   }
 
   return (
-    <div className="w-full max-w-[1520px] mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
 
       {/* ── Page header ── */}
       <div className="border-b border-[#1e1e1e] pb-6 mb-6">
@@ -196,10 +264,10 @@ export function ProductsClient({ initialProducts, initialSearch = "", initialCat
                 {cat} <X size={11} />
               </button>
             ))}
-            {selectedPriceRange !== null && (
-              <button role="listitem" onClick={() => setSelectedPriceRange(null)}
+            {hasPriceFilter && (
+              <button role="listitem" onClick={() => { setMinPrice(0); setMaxPrice(MAX_PRICE); }}
                 className="inline-flex items-center gap-1.5 h-7 px-3 bg-[#1a1a1a] border border-accent/40 text-xs font-bold text-accent hover:bg-accent hover:text-white transition-all">
-                {PRICE_RANGES[selectedPriceRange].label} <X size={11} />
+                Rs. {minPrice.toLocaleString()} – {maxPrice >= MAX_PRICE ? "1,50,000+" : `Rs. ${maxPrice.toLocaleString()}`} <X size={11} />
               </button>
             )}
             {inStockOnly && (

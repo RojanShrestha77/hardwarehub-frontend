@@ -76,3 +76,38 @@ html { scroll-behavior: smooth; }
   background: #1a1a1a;
   border-radius: 4px;
 }
+
+/* Dual-handle price range slider */
+.price-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  background: transparent;
+  pointer-events: none;
+  height: 4px;
+  width: 100%;
+  position: absolute;
+  left: 0;
+  top: 0;
+}
+.price-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  pointer-events: all;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #ff6600;
+  cursor: pointer;
+  border: 2px solid #0f0f0f;
+  box-shadow: 0 0 0 1px #ff6600;
+}
+.price-slider::-moz-range-thumb {
+  pointer-events: all;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #ff6600;
+  cursor: pointer;
+  border: 2px solid #0f0f0f;
+  box-shadow: 0 0 0 1px #ff6600;
+}

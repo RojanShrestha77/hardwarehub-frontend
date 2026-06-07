@@ -6,7 +6,9 @@ import { useSelector, useDispatch } from "react-redux";
 import { selectCartCount } from "@/store/slices/cartSlice";
 import { toggleMobileMenu, closeMobileMenu } from "@/store/slices/uiSlice";
 import type { RootState } from "@/store/index";
-import { ShoppingCart, Search, Menu, X, Cpu, User, Store } from "lucide-react";
+import { ShoppingCart, Search, Menu, X, Cpu, User, Store, Heart, Bell } from "lucide-react";
+import { selectWishlistCount } from "@/store/slices/wishlistSlice";
+import { selectUnreadCount } from "@/store/slices/notificationSlice";
 import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { twMerge } from "tailwind-merge";
@@ -15,7 +17,7 @@ const NAV_LINKS = [
   { label: "Home",     href: "/" },
   { label: "Products", href: "/products" },
   { label: "Deals",    href: "/products?badge=Deal" },
-  { label: "About",    href: "/about" },
+  { label: "Orders",   href: "/orders" },
 ];
 
 export function Navbar() {
@@ -26,6 +28,8 @@ export function Navbar() {
   const mobileOpen = useSelector((s: RootState) => s.ui.mobileMenuOpen);
 
   const { user, logout, loading: authLoading } = useAuth();
+  const wishlistCount  = useSelector(selectWishlistCount);
+  const unreadCount    = useSelector(selectUnreadCount);
 
   const [searchQuery, setSearchQuery] = useState("");
   const [scrolled, setScrolled] = useState(false);
@@ -56,7 +60,7 @@ export function Navbar() {
           : "bg-[#0a0a0a] border-b border-border/50"
       )}
     >
-      <div className="w-full max-w-[1520px] mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center h-16 gap-4">
 
           {/* Logo */}
@@ -105,24 +109,39 @@ export function Navbar() {
 
           {/* Right actions */}
           <div className="flex items-center gap-1 ml-2">
-            {/* Seller Dashboard - Only visible to sellers */}
+            {/* Seller Dashboard */}
             {user?.role === "seller" && (
-              <Link
-                href="/seller"
-                className="relative flex items-center justify-center w-10 h-10 rounded-md text-muted hover:text-accent hover:bg-surface transition-colors"
-                aria-label="Seller Dashboard"
-                title="Seller Dashboard"
-              >
+              <Link href="/seller" className="relative flex items-center justify-center w-10 h-10 rounded-md text-muted hover:text-accent hover:bg-surface transition-colors" aria-label="Seller Dashboard" title="Seller Dashboard">
                 <Store size={20} />
               </Link>
             )}
 
+            {/* Notifications */}
+            {user && (
+              <Link href="/notifications" className="relative flex items-center justify-center w-10 h-10 rounded-md text-muted hover:text-white hover:bg-surface transition-colors" aria-label="Notifications">
+                <Bell size={20} />
+                {unreadCount > 0 && (
+                  <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] flex items-center justify-center bg-accent text-white text-[10px] font-bold rounded-full px-1 leading-none">
+                    {unreadCount > 99 ? "99+" : unreadCount}
+                  </span>
+                )}
+              </Link>
+            )}
+
+            {/* Wishlist */}
+            {user && (
+              <Link href="/wishlist" className="relative flex items-center justify-center w-10 h-10 rounded-md text-muted hover:text-white hover:bg-surface transition-colors" aria-label="Wishlist">
+                <Heart size={20} />
+                {wishlistCount > 0 && (
+                  <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] flex items-center justify-center bg-accent text-white text-[10px] font-bold rounded-full px-1 leading-none">
+                    {wishlistCount > 99 ? "99+" : wishlistCount}
+                  </span>
+                )}
+              </Link>
+            )}
+
             {/* Cart */}
-            <Link
-              href="/cart"
-              className="relative flex items-center justify-center w-10 h-10 rounded-md text-muted hover:text-white hover:bg-surface transition-colors"
-              aria-label={`Cart, ${cartCount} items`}
-            >
+            <Link href="/cart" className="relative flex items-center justify-center w-10 h-10 rounded-md text-muted hover:text-white hover:bg-surface transition-colors" aria-label={`Cart, ${cartCount} items`}>
               <ShoppingCart size={20} />
               {cartCount > 0 && (
                 <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] flex items-center justify-center bg-accent text-white text-[10px] font-bold rounded-full px-1 leading-none">

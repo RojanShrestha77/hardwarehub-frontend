@@ -24,7 +24,7 @@ const FacebookIcon = ({ size = 15 }: { size?: number }) => (
 export function Footer() {
   return (
     <footer className="bg-[#0d0d0d] border-t border-[#1a1a1a]" role="contentinfo">
-      <div className="w-full max-w-[1520px] mx-auto px-4 sm:px-6 lg:px-8 py-14">
+      <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-14">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10">
 
           {/* Brand */}
@@ -122,7 +122,7 @@ export function Footer() {
       </div>
 
       <div className="border-t border-[#1a1a1a]">
-        <div className="w-full max-w-[1520px] mx-auto px-4 sm:px-6 lg:px-8 py-4 text-center">
+        <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 text-center">
           <p className="text-[11px] uppercase tracking-[0.15em] text-[#444] font-semibold">
             © {new Date().getFullYear()} HardwareHub Industrial Supply. All Rights Reserved.
           </p>

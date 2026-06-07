@@ -1,11 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { useDispatch } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { addToCart } from "@/store/slices/cartSlice";
-import type { AppDispatch } from "@/store/index";
+import { addToWishlist, removeFromWishlist, selectIsInWishlist } from "@/store/slices/wishlistSlice";
+import type { AppDispatch, RootState } from "@/store/index";
 import type { Product } from "@/lib/api/products";
-import { ShoppingCart } from "lucide-react";
+import { ShoppingCart, Heart } from "lucide-react";
 
 const categoryEmoji = (cat: string) =>
   cat === "GPU"          ? "🎮"
@@ -27,15 +28,26 @@ const categorySpotlight = (cat: string) =>
   : cat === "Cooling"    ? "rgba(251,146,60,0.18)"
   :                        "rgba(161,161,170,0.18)";
 
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:5000";
+const imgSrc = (url: string | null) =>
+  url ? (url.startsWith("http") ? url : `${API_BASE}${url}`) : null;
+
 interface ProductCardProps { product: Product; }
 
 export function ProductCard({ product }: ProductCardProps) {
   const dispatch = useDispatch<AppDispatch>();
   const inStock = product.stock > 0;
+  const inWishlist = useSelector((s: RootState) => selectIsInWishlist(product.id)(s));
 
   const handleAddToCart = (e: React.MouseEvent) => {
     e.preventDefault();
     dispatch(addToCart({ productId: product.id, quantity: 1 }));
+  };
+
+  const handleWishlist = (e: React.MouseEvent) => {
+    e.preventDefault();
+    if (inWishlist) dispatch(removeFromWishlist(product.id));
+    else dispatch(addToWishlist(product.id));
   };
 
   const discount = product.originalPrice
@@ -65,9 +77,9 @@ export function ProductCard({ product }: ProductCardProps) {
           className="relative aspect-[4/3] flex items-center justify-center overflow-hidden"
           style={{ background: `radial-gradient(ellipse 70% 65% at 50% 30%, ${categorySpotlight(product.category)} 0%, #080808 70%)` }}
         >
-          {product.imageUrl ? (
+          {imgSrc(product.imageUrl) ? (
             <img
-              src={product.imageUrl}
+              src={imgSrc(product.imageUrl)!}
               alt={product.name}
               className="absolute inset-0 w-full h-full object-contain p-6 group-hover:scale-105 transition-transform duration-500"
             />
@@ -82,20 +94,27 @@ export function ProductCard({ product }: ProductCardProps) {
           {/* Bottom fade */}
           <div className="absolute inset-0 bg-gradient-to-t from-[#0f0f0f] via-transparent to-transparent" />
 
-          {/* Badge */}
+          {/* Badge top-right */}
           <div className="absolute top-3 right-3">
             <span className={`${badgeColor} text-white text-[10px] font-black uppercase tracking-widest px-2.5 py-1`}>
               {badgeLabel}
             </span>
           </div>
-          {/* Discount badge */}
-          {discount && (
-            <div className="absolute top-3 left-3">
+          {/* Wishlist + discount top-left */}
+          <div className="absolute top-3 left-3 flex flex-col gap-1.5">
+            <button
+              onClick={handleWishlist}
+              className="w-8 h-8 flex items-center justify-center bg-black/60 hover:bg-black/80 transition-colors"
+              aria-label={inWishlist ? "Remove from wishlist" : "Add to wishlist"}
+            >
+              <Heart size={14} className={inWishlist ? "fill-accent text-accent" : "text-white"} />
+            </button>
+            {discount && (
               <span className="bg-orange-500 text-white text-[10px] font-black uppercase tracking-widest px-2 py-1">
                 -{discount}%
               </span>
-            </div>
-          )}
+            )}
+          </div>
         </div>
       </Link>
 
