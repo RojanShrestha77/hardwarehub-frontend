@@ -8,15 +8,33 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
-const PUBLIC_ROUTES  = ["/login", "/register", "/forgot-password"];
-const PROTECTED_ROUTES = ["/cart", "/checkout", "/profile", "/orders"];
+const PUBLIC_ROUTES    = ["/login", "/register", "/forgot-password"];
+const PROTECTED_ROUTES = ["/cart", "/checkout", "/profile", "/orders", "/wishlist", "/notifications"];
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
-  const token = request.cookies.get("auth_token")?.value;
+  const token     = request.cookies.get("auth_token")?.value;
+  const userRaw   = request.cookies.get("user_data")?.value;
+  const userRole  = userRaw ? (() => { try { return JSON.parse(userRaw)?.role; } catch { return null; } })() : null;
+
+  // Admin routes — must be logged in AND have admin role
+  if (pathname.startsWith("/admin")) {
+    if (!token || userRole !== "admin") {
+      return NextResponse.redirect(new URL("/", request.url));
+    }
+    return NextResponse.next();
+  }
+
+  // Seller dashboard — must be logged in AND have seller role
+  if (pathname.startsWith("/seller")) {
+    if (!token || userRole !== "seller") {
+      return NextResponse.redirect(new URL("/", request.url));
+    }
+    return NextResponse.next();
+  }
 
   const isProtected = PROTECTED_ROUTES.some((r) => pathname.startsWith(r));
-  const isAuthRoute  = PUBLIC_ROUTES.some((r) => pathname.startsWith(r));
+  const isAuthRoute = PUBLIC_ROUTES.some((r) => pathname.startsWith(r));
 
   if (isProtected && !token) {
     const loginUrl = new URL("/login", request.url);

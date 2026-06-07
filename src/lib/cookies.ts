@@ -1,41 +1,43 @@
 "use server";
 
-import { cookies } from "next/headers";
+import { cookies} from "next/headers";
 
-const TOKEN_KEY = "auth_token";
-const USER_KEY = "user_data";
+// backends create jwt while logging in
+// frontends receives jwt
+// frontends store it (set) = setAuthToken
+// frontends read it (get) = getAuthToken
 
-const cookieOpts = {
-  httpOnly: true,
-  secure: process.env.NODE_ENV === "production",
-  path: "/",
-  maxAge: 60 * 60 * 24 * 7,
+export const setAuthToken = async (token: string) => {
+    const cookieStore = await cookies();
+    cookieStore.set({ name: "auth_token", value: token });
 };
 
-export async function getAuthToken(): Promise<string | null> {
-  const store = await cookies();
-  return store.get(TOKEN_KEY)?.value ?? null;
-}
+export const getAuthToken = async () => {
+    const cookieStore = await cookies();
+    return cookieStore.get("auth_token")?.value;
+};
 
-export async function getUserData(): Promise<any | null> {
-  const store = await cookies();
-  const raw = store.get(USER_KEY)?.value;
-  if (!raw) return null;
-  try {
-    return JSON.parse(raw);
-  } catch {
-    return null;
-  }
-}
+export const setUserData = async (userData: any) => {
+    const cookieStore = await cookies();
+    cookieStore.set({ name: "user_data", value: JSON.stringify(userData)});
+    if(userData.role === "seller") {
+        cookieStore.set({ name: "userRole", value:userData.role });
+    }
+    if (userData.id) {
+        cookieStore.set({name: "userId", value: userData.id });
+    }
+};
 
-export async function setAuthCookies(token: string, user: any) {
-  const store = await cookies();
-  store.set(TOKEN_KEY, token, cookieOpts);
-  store.set(USER_KEY, JSON.stringify(user), cookieOpts);
-}
+export const getUserData = async () => {
+    const cookieStore = await cookies();
+    const userData = cookieStore.get("user_data")?.value;
+    return userData ? JSON.parse(userData) : null;
+};
 
-export async function clearAuthCookies() {
-  const store = await cookies();
-  store.delete(TOKEN_KEY);
-  store.delete(USER_KEY);
-}
+export const clearAuthCookies = async () => {
+    const cookieStore = await cookies();
+    cookieStore.delete("auth_token");
+    cookieStore.delete("user_data");
+    cookieStore.delete("userRole");
+    cookieStore.delete("userId");
+};

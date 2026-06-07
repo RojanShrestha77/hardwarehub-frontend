@@ -6,7 +6,7 @@ import { useSelector, useDispatch } from "react-redux";
 import { fetchCart, selectCartCount } from "@/store/slices/cartSlice";
 import { toggleMobileMenu, closeMobileMenu } from "@/store/slices/uiSlice";
 import type { RootState } from "@/store/index";
-import { ShoppingCart, Search, Menu, X, Cpu, User, Store, Heart, Bell } from "lucide-react";
+import { ShoppingCart, Search, Menu, X, Cpu, User, Store, Heart, Bell, LayoutDashboard } from "lucide-react";
 import { fetchWishlist, selectWishlistCount } from "@/store/slices/wishlistSlice";
 import { fetchUnreadCount, selectUnreadCount } from "@/store/slices/notificationSlice";
 import { useState, useEffect, useRef } from "react";
@@ -118,6 +118,13 @@ export function Navbar() {
 
           {/* Right actions */}
           <div className="flex items-center gap-1 ml-2">
+            {/* Admin Panel */}
+            {user?.role === "admin" && (
+              <Link href="/admin" className="relative flex items-center justify-center w-10 h-10 rounded-md text-muted hover:text-accent hover:bg-surface transition-colors" aria-label="Admin Panel" title="Admin Panel">
+                <LayoutDashboard size={20} />
+              </Link>
+            )}
+
             {/* Seller Dashboard */}
             {user?.role === "seller" && (
               <Link href="/seller" className="relative flex items-center justify-center w-10 h-10 rounded-md text-muted hover:text-accent hover:bg-surface transition-colors" aria-label="Seller Dashboard" title="Seller Dashboard">
