@@ -11,6 +11,10 @@ import type { PaymentMethod, ShippingAddress } from "@/lib/api/orders";
 import Link from "next/link";
 import { ArrowLeft, MapPin, CreditCard, CheckCircle, Package } from "lucide-react";
 
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:5000";
+const imgSrc = (url: string | null | undefined) =>
+  url ? (url.startsWith("http") ? url : `${API_BASE}${url}`) : null;
+
 const PAYMENT_METHODS: { value: PaymentMethod; label: string; desc: string }[] = [
   { value: "cash_on_delivery", label: "Cash on Delivery",  desc: "Pay when your order arrives" },
   { value: "khalti",           label: "Khalti",            desc: "Pay via Khalti digital wallet" },
@@ -104,7 +108,6 @@ export default function CheckoutPage() {
         productImage: i.product.imageUrl ?? undefined,
         quantity:     i.quantity,
         price:        i.product.price,
-        sellerId:     "seller",
       })),
       shippingAddress: address,
       paymentMethod:   payment,
@@ -186,8 +189,8 @@ export default function CheckoutPage() {
                 {items.map((item) => (
                   <div key={item.id} className="flex gap-3 text-sm">
                     <div className="w-12 h-12 bg-[#1a1a1a] flex items-center justify-center text-xl shrink-0">
-                      {item.product.imageUrl
-                        ? <img src={item.product.imageUrl} alt={item.product.name} className="w-full h-full object-contain p-1" />
+                      {imgSrc(item.product.imageUrl)
+                        ? <img src={imgSrc(item.product.imageUrl)!} alt={item.product.name} className="w-full h-full object-contain p-1" />
                         : <Package size={18} className="text-[#444]" />}
                     </div>
                     <div className="flex-1 min-w-0">

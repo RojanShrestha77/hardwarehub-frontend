@@ -11,7 +11,7 @@ export interface OrderItem {
   productImage?: string;
   quantity: number;
   price: number;
-  sellerId: string;
+  sellerId?: string;
 }
 
 export interface ShippingAddress {

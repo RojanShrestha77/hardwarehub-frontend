@@ -7,6 +7,10 @@ import type { AppDispatch } from "@/store/index";
 import { fetchOrderById, cancelOrder, selectCurrentOrder, selectOrderLoading, selectOrderError } from "@/store/slices/orderSlice";
 import Link from "next/link";
 import { ArrowLeft, Package, MapPin, CreditCard, Clock, CheckCircle, Truck, XCircle, RotateCcw } from "lucide-react";
+
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:5000";
+const imgSrc = (url: string | null | undefined) =>
+  url ? (url.startsWith("http") ? url : `${API_BASE}${url}`) : null;
 import type { OrderStatus } from "@/lib/api/orders";
 
 const STATUS_STEPS: OrderStatus[] = ["pending", "processing", "shipped", "delivered"];
@@ -102,8 +106,8 @@ export default function OrderDetailPage() {
               {order.items.map((item, i) => (
                 <div key={i} className="flex gap-4 pb-4 border-b border-[#161616] last:border-0 last:pb-0">
                   <div className="w-16 h-16 bg-[#1a1a1a] flex items-center justify-center shrink-0">
-                    {item.productImage
-                      ? <img src={item.productImage} alt={item.productName} className="w-full h-full object-contain p-2" />
+                    {imgSrc(item.productImage)
+                      ? <img src={imgSrc(item.productImage)!} alt={item.productName} className="w-full h-full object-contain p-2" />
                       : <Package size={20} className="text-[#444]" />}
                   </div>
                   <div className="flex-1 min-w-0">

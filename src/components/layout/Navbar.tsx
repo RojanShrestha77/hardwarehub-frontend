@@ -3,12 +3,12 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useSelector, useDispatch } from "react-redux";
-import { selectCartCount } from "@/store/slices/cartSlice";
+import { fetchCart, selectCartCount } from "@/store/slices/cartSlice";
 import { toggleMobileMenu, closeMobileMenu } from "@/store/slices/uiSlice";
 import type { RootState } from "@/store/index";
 import { ShoppingCart, Search, Menu, X, Cpu, User, Store, Heart, Bell } from "lucide-react";
-import { selectWishlistCount } from "@/store/slices/wishlistSlice";
-import { selectUnreadCount } from "@/store/slices/notificationSlice";
+import { fetchWishlist, selectWishlistCount } from "@/store/slices/wishlistSlice";
+import { fetchUnreadCount, selectUnreadCount } from "@/store/slices/notificationSlice";
 import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { twMerge } from "tailwind-merge";
@@ -42,6 +42,15 @@ export function Navbar() {
   }, []);
 
   useEffect(() => { dispatch(closeMobileMenu()); }, [pathname, dispatch]);
+
+  // Seed Redux with server data on login / page refresh
+  const isLoggedIn = !authLoading && !!user;
+  useEffect(() => {
+    if (!isLoggedIn) return;
+    dispatch(fetchCart() as any);
+    dispatch(fetchWishlist() as any);
+    dispatch(fetchUnreadCount() as any);
+  }, [isLoggedIn, dispatch]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
