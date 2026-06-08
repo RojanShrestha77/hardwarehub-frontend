@@ -1,368 +1,532 @@
 ﻿"use client";
 
-import { useMemo, useState } from "react";
-import { SlidersHorizontal, X, ChevronDown, LayoutGrid, List } from "lucide-react";
+import { useState, useEffect } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import { addToCart } from "@/store/slices/cartSlice";
+import {
+  addToWishlist,
+  removeFromWishlist,
+  selectIsInWishlist,
+} from "@/store/slices/wishlistSlice";
+import type { AppDispatch, RootState } from "@/store/index";
 import type { Product } from "@/lib/api/products";
-import type { Category } from "@/lib/api/categories";
-import { ProductCard, ProductCardSkeleton } from "@/components/products/ProductCard";
-import { Badge } from "@/components/ui/Badge";
-import { Button } from "@/components/ui/Button";
+import { getProductReviews, createReview } from "@/lib/api/reviews";
+import type { Review } from "@/lib/api/reviews";
+import { StarRating } from "@/components/ui/StarRating";
+import { ProductCard } from "@/components/products/ProductCard";
+import {
+  ShoppingCart,
+  ArrowLeft,
+  Check,
+  ChevronRight,
+  Shield,
+  Truck,
+  RotateCcw,
+  Heart,
+  Star,
+  Package,
+} from "lucide-react";
+import Link from "next/link";
 import { twMerge } from "tailwind-merge";
+import { CommunityIssues } from "@/components/products/CommunityIssues";
 
-const SORT_OPTIONS = [
-  { value: "featured",   label: "Featured"       },
-  { value: "price-asc",  label: "Price: Low–High" },
-  { value: "price-desc", label: "Price: High–Low" },
-  { value: "rating",     label: "Highest Rated"  },
-];
+const API_BASE =
+  process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:5000";
+const imgSrc = (url: string | null) =>
+  url ? (url.startsWith("http") ? url : `${API_BASE}${url}`) : null;
 
-const MAX_PRICE = 150000;
-const PRICE_STEP = 500;
-
-interface ProductsClientProps {
-  initialProducts: Product[];
-  categories: Category[];
-  initialSearch?: string;
-  initialCategory?: string;
+interface Props {
+  product: Product;
+  related: Product[];
 }
 
-export function ProductsClient({ initialProducts, categories, initialSearch = "", initialCategory = "" }: ProductsClientProps) {
-  const categoriesWithCount = useMemo(() => {
-    const counts: Record<string, number> = {};
-    for (const p of initialProducts) {
-      counts[p.category] = (counts[p.category] ?? 0) + 1;
-    }
-    return categories.map((cat) => ({ ...cat, count: counts[cat.name] ?? 0 }));
-  }, [initialProducts, categories]);
+const categoryEmoji = (cat: string) =>
+  cat === "GPU"
+    ? "🎮"
+    : cat === "CPU"
+      ? "⚡"
+      : cat === "RAM"
+        ? "🧩"
+        : cat === "Storage"
+          ? "💾"
+          : cat === "Motherboard"
+            ? "🔌"
+            : cat === "PSU"
+              ? "⚙️"
+              : cat === "Cooling"
+                ? "❄️"
+                : "🖥️";
 
-  const [selectedCategories, setSelectedCategories] = useState<string[]>(() => {
-    if (!initialCategory) return [];
-    // URL may pass slug ("power-tools") or exact name ("Power Tools") — resolve to name
-    const match = categories.find(
-      (c) => c.name === initialCategory || c.slug === initialCategory
-    );
-    return [match ? match.name : initialCategory];
-  });
-  const [minPrice, setMinPrice] = useState(0);
-  const [maxPrice, setMaxPrice] = useState(MAX_PRICE);
-  const [inStockOnly, setInStockOnly]   = useState(false);
-  const [sortBy, setSortBy]             = useState("featured");
-  const [searchQuery, setSearchQuery]   = useState(initialSearch);
-  const [sidebarOpen, setSidebarOpen]   = useState(false);
-  const [viewMode, setViewMode]         = useState<"grid" | "list">("grid");
+const timeAgo = (date: string) => {
+  const d = Math.floor((Date.now() - new Date(date).getTime()) / 86400000);
+  if (d === 0) return "Today";
+  if (d === 1) return "Yesterday";
+  if (d < 30) return `${d} days ago`;
+  const m = Math.floor(d / 30);
+  if (m < 12) return `${m} month${m > 1 ? "s" : ""} ago`;
+  return `${Math.floor(m / 12)} year${Math.floor(m / 12) > 1 ? "s" : ""} ago`;
+};
 
-  const filteredProducts = useMemo(() => {
-    let result = [...initialProducts];
+export function ProductDetailClient({ product, related }: Props) {
+  const dispatch = useDispatch<AppDispatch>();
+  const inStock = product.stock > 0;
+  const inWishlist = useSelector((s: RootState) =>
+    selectIsInWishlist(product.id)(s),
+  );
 
-    if (searchQuery) {
-      const q = searchQuery.toLowerCase();
-      result = result.filter(
-        (p) => p.name.toLowerCase().includes(q) || p.brand.toLowerCase().includes(q) || p.category.toLowerCase().includes(q)
-      );
-    }
-    if (selectedCategories.length > 0) {
-      result = result.filter((p) => selectedCategories.includes(p.category));
-    }
-    if (minPrice > 0 || maxPrice < MAX_PRICE) {
-      result = result.filter((p) => p.price >= minPrice && p.price <= maxPrice);
-    }
-    if (inStockOnly) {
-      result = result.filter((p) => p.stock > 0);
-    }
-    switch (sortBy) {
-      case "price-asc":  result.sort((a, b) => a.price - b.price);   break;
-      case "price-desc": result.sort((a, b) => b.price - a.price);   break;
-      case "rating":     result.sort((a, b) => Number(b.rating) - Number(a.rating)); break;
-    }
-    return result;
-  }, [initialProducts, searchQuery, selectedCategories, minPrice, maxPrice, inStockOnly, sortBy]);
+  const [quantity, setQuantity] = useState(1);
+  const [addedToCart, setAddedToCart] = useState(false);
+  const [activeTab, setActiveTab] = useState<"specs" | "reviews">("specs");
 
-  const toggleCategory = (cat: string) =>
-    setSelectedCategories((prev) =>
-      prev.includes(cat) ? prev.filter((c) => c !== cat) : [...prev, cat]
-    );
+  // Reviews state
+  const [reviews, setReviews] = useState<Review[]>([]);
+  const [avgRating, setAvgRating] = useState(0);
+  const [totalReviews, setTotal] = useState(0);
+  const [reviewsLoading, setRLoading] = useState(false);
 
-  const hasPriceFilter = minPrice > 0 || maxPrice < MAX_PRICE;
+  // Review form
+  const [rating, setRating] = useState(5);
+  const [comment, setComment] = useState("");
+  const [hovered, setHovered] = useState(0);
+  const [submitting, setSubmit] = useState(false);
+  const [submitErr, setErr] = useState("");
+  const [submitOk, setOk] = useState(false);
 
-  const clearFilters = () => {
-    setSelectedCategories([]);
-    setMinPrice(0);
-    setMaxPrice(MAX_PRICE);
-    setInStockOnly(false);
-    setSearchQuery("");
+  const discount = product.originalPrice
+    ? Math.round((1 - product.price / product.originalPrice) * 100)
+    : null;
+
+  useEffect(() => {
+    if (activeTab !== "reviews") return;
+    setRLoading(true);
+    getProductReviews(product.id)
+      .then((res) => {
+        setReviews(res.data.reviews);
+        setAvgRating(res.data.avgRating);
+        setTotal(res.data.pagination.total);
+      })
+      .catch(() => {})
+      .finally(() => setRLoading(false));
+  }, [activeTab, product.id]);
+
+  const handleAddToCart = () => {
+    dispatch(addToCart({ productId: product.id, quantity }));
+    setAddedToCart(true);
+    setTimeout(() => setAddedToCart(false), 2000);
   };
 
-  const activeFilterCount =
-    selectedCategories.length +
-    (hasPriceFilter ? 1 : 0) +
-    (inStockOnly ? 1 : 0);
+  const handleWishlist = () => {
+    if (inWishlist) dispatch(removeFromWishlist(product.id));
+    else dispatch(addToWishlist(product.id));
+  };
 
-  function Sidebar() {
-    return (
-      <aside className="w-full space-y-6" aria-label="Product filters">
-
-        {/* Search */}
-        <div>
-          <label className="text-[11px] font-black uppercase tracking-[0.15em] text-white block mb-2">Search</label>
-          <input
-            type="search"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Brand, model…"
-            className="w-full h-9 px-3 bg-[#0a0a0a] border border-[#222] text-sm text-white placeholder:text-[#444] focus:outline-none focus:border-accent transition-all"
-            aria-label="Search products"
-          />
-        </div>
-
-        {/* Category */}
-        <div>
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="text-[11px] font-black uppercase tracking-[0.15em] text-white">Category</h3>
-            {selectedCategories.length > 0 && (
-              <button
-                onClick={() => setSelectedCategories([])}
-                className="text-[10px] font-black uppercase tracking-wider text-accent hover:text-accent-hover transition-colors"
-              >
-                Clear All
-              </button>
-            )}
-          </div>
-          <div className="space-y-2">
-            {categoriesWithCount.map((cat) => (
-              <label key={cat.name} className="flex items-center gap-3 cursor-pointer group">
-                <input
-                  type="checkbox"
-                  checked={selectedCategories.includes(cat.name)}
-                  onChange={() => toggleCategory(cat.name)}
-                  className="w-4 h-4 border-[#333] bg-[#111] accent-accent cursor-pointer"
-                />
-                <span className="text-sm text-[#888] group-hover:text-white transition-colors flex-1">
-                  {cat.icon} {cat.name}
-                </span>
-                <span className="text-xs text-[#444]">{cat.count}</span>
-              </label>
-            ))}
-          </div>
-        </div>
-
-        {/* Price Range Slider */}
-        <div>
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="text-[11px] font-black uppercase tracking-[0.15em] text-white">Price Range</h3>
-            {hasPriceFilter && (
-              <button
-                onClick={() => { setMinPrice(0); setMaxPrice(MAX_PRICE); }}
-                className="text-[10px] font-black uppercase tracking-wider text-accent hover:text-accent-hover transition-colors"
-              >
-                Reset
-              </button>
-            )}
-          </div>
-
-          {/* Price labels */}
-          <div className="flex justify-between text-xs text-[#888] mb-4">
-            <span>Rs. {minPrice.toLocaleString()}</span>
-            <span>{maxPrice >= MAX_PRICE ? "Rs. 1,50,000+" : `Rs. ${maxPrice.toLocaleString()}`}</span>
-          </div>
-
-          {/* Dual-handle slider track */}
-          <div className="relative h-1 mx-2">
-            {/* Background track */}
-            <div className="absolute inset-0 bg-[#333] rounded-full" />
-            {/* Colored fill between thumbs */}
-            <div
-              className="absolute h-full bg-accent rounded-full"
-              style={{
-                left:  `${(minPrice / MAX_PRICE) * 100}%`,
-                right: `${(1 - maxPrice / MAX_PRICE) * 100}%`,
-              }}
-            />
-            {/* Min thumb input */}
-            <input
-              type="range"
-              min={0} max={MAX_PRICE} step={PRICE_STEP}
-              value={minPrice}
-              onChange={(e) => {
-                const v = Number(e.target.value);
-                setMinPrice(Math.min(v, maxPrice - PRICE_STEP));
-              }}
-              className="price-slider"
-              style={{ zIndex: minPrice >= MAX_PRICE * 0.9 ? 5 : 3 }}
-              aria-label="Minimum price"
-            />
-            {/* Max thumb input */}
-            <input
-              type="range"
-              min={0} max={MAX_PRICE} step={PRICE_STEP}
-              value={maxPrice}
-              onChange={(e) => {
-                const v = Number(e.target.value);
-                setMaxPrice(Math.max(v, minPrice + PRICE_STEP));
-              }}
-              className="price-slider"
-              style={{ zIndex: minPrice >= MAX_PRICE * 0.9 ? 3 : 5 }}
-              aria-label="Maximum price"
-            />
-          </div>
-
-          {/* Min/Max labels */}
-          <div className="flex justify-between text-[10px] text-[#444] mt-4">
-            <span>Rs. 0</span>
-            <span>Rs. 1,50,000+</span>
-          </div>
-        </div>
-
-        {/* In Stock */}
-        <div>
-          <label className="flex items-center gap-3 cursor-pointer group">
-            <input
-              type="checkbox"
-              checked={inStockOnly}
-              onChange={(e) => setInStockOnly(e.target.checked)}
-              className="w-4 h-4 border-[#333] bg-[#111] accent-accent cursor-pointer"
-            />
-            <span className="text-sm text-[#888] group-hover:text-white transition-colors font-medium">
-              In Stock Only
-            </span>
-          </label>
-        </div>
-
-        {activeFilterCount > 0 && (
-          <button onClick={clearFilters} className="w-full flex items-center justify-center gap-1.5 border border-[#333] hover:border-accent text-[#555] hover:text-accent text-[11px] font-black uppercase tracking-wider py-2 transition-colors">
-            <X size={12} /> Clear filters ({activeFilterCount})
-          </button>
-        )}
-      </aside>
-    );
-  }
+  const handleReviewSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (comment.trim().length < 10) {
+      setErr("Comment must be at least 10 characters.");
+      return;
+    }
+    setSubmit(true);
+    setErr("");
+    try {
+      const res = await createReview(product.id, rating, comment);
+      setReviews((p) => [res.data, ...p]);
+      setTotal((p) => p + 1);
+      setComment("");
+      setRating(5);
+      setOk(true);
+      setTimeout(() => setOk(false), 3000);
+    } catch (e: any) {
+      setErr(e.response?.data?.message ?? "Failed to submit review.");
+    } finally {
+      setSubmit(false);
+    }
+  };
 
   return (
-    <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-6 py-8">
+      {/* Breadcrumb */}
+      <nav className="flex items-center gap-2 text-sm text-[#555] mb-6 flex-wrap">
+        <Link href="/" className="hover:text-white transition-colors">
+          Home
+        </Link>
+        <ChevronRight size={14} />
+        <Link href="/products" className="hover:text-white transition-colors">
+          Products
+        </Link>
+        <ChevronRight size={14} />
+        <Link
+          href={`/products?category=${product.category}`}
+          className="hover:text-white transition-colors"
+        >
+          {product.category}
+        </Link>
+        <ChevronRight size={14} />
+        <span className="text-white line-clamp-1">{product.name}</span>
+      </nav>
 
-      {/* ── Page header ── */}
-      <div className="border-b border-[#1e1e1e] pb-6 mb-6">
-        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3">
-          <div>
-            <h1 className="text-2xl sm:text-3xl font-black uppercase tracking-tight text-white">
-              {selectedCategories.length === 1 ? selectedCategories[0] : "All"} Products
-            </h1>
-            <p className="text-[#555] text-sm mt-1">
-              Precision-engineered equipment for high-demand applications.
-            </p>
+      <div className="grid lg:grid-cols-2 gap-10 mb-16">
+        {/* Image */}
+        <div className="space-y-3">
+          <div
+            className="aspect-square bg-[#0f0f0f] border border-[#1e1e1e] flex items-center justify-center relative overflow-hidden"
+            style={{
+              background: `radial-gradient(ellipse 70% 70% at 50% 40%, rgba(130,60,5,0.15) 0%, #080808 70%)`,
+            }}
+          >
+            {imgSrc(product.imageUrl) ? (
+              <img
+                src={imgSrc(product.imageUrl)!}
+                alt={product.name}
+                className="w-full h-full object-contain p-8"
+              />
+            ) : (
+              <span className="text-[120px] select-none opacity-20">
+                {categoryEmoji(product.category)}
+              </span>
+            )}
+            {product.badge && (
+              <span className="absolute top-4 left-4 bg-accent text-white text-[10px] font-black uppercase tracking-widest px-2.5 py-1">
+                {product.badge}
+              </span>
+            )}
+            {discount && (
+              <span className="absolute top-4 right-4 bg-orange-500 text-white text-[10px] font-black uppercase tracking-widest px-2.5 py-1">
+                -{discount}% OFF
+              </span>
+            )}
           </div>
-          <p className="text-sm text-[#555] shrink-0">
-            Showing <span className="text-accent font-bold">{filteredProducts.length}</span> Products
-          </p>
         </div>
 
-        {/* Active filter chips */}
-        {activeFilterCount > 0 && (
-          <div className="flex flex-wrap gap-2 mt-4" role="list" aria-label="Active filters">
-            {selectedCategories.map((cat) => (
-              <button key={cat} role="listitem" onClick={() => toggleCategory(cat)}
-                className="inline-flex items-center gap-1.5 h-7 px-3 bg-[#1a1a1a] border border-accent/40 text-xs font-bold text-accent hover:bg-accent hover:text-white transition-all">
-                {cat} <X size={11} />
-              </button>
-            ))}
-            {hasPriceFilter && (
-              <button role="listitem" onClick={() => { setMinPrice(0); setMaxPrice(MAX_PRICE); }}
-                className="inline-flex items-center gap-1.5 h-7 px-3 bg-[#1a1a1a] border border-accent/40 text-xs font-bold text-accent hover:bg-accent hover:text-white transition-all">
-                Rs. {minPrice.toLocaleString()} – {maxPrice >= MAX_PRICE ? "1,50,000+" : `Rs. ${maxPrice.toLocaleString()}`} <X size={11} />
-              </button>
+        {/* Info */}
+        <div className="flex flex-col">
+          <p className="text-[11px] font-black uppercase tracking-[0.2em] text-[#555] mb-2">
+            {product.brand} · {product.category}
+          </p>
+          <h1 className="text-2xl sm:text-3xl font-black uppercase leading-tight mb-3">
+            {product.name}
+          </h1>
+
+          <div className="flex items-center gap-3 mb-4">
+            <StarRating
+              rating={Number(product.rating)}
+              count={product.reviewCount}
+              size={15}
+            />
+            <button
+              onClick={() => setActiveTab("reviews")}
+              className="text-xs text-[#555] hover:text-accent transition-colors"
+            >
+              ({totalReviews || product.reviewCount} reviews)
+            </button>
+          </div>
+
+          {/* Price */}
+          <div className="flex items-baseline gap-3 mb-5">
+            <span className="text-3xl font-black text-accent">
+              Rs. {product.price.toLocaleString()}
+            </span>
+            {product.originalPrice && (
+              <span className="text-lg text-[#555] line-through">
+                Rs. {product.originalPrice.toLocaleString()}
+              </span>
             )}
-            {inStockOnly && (
-              <button role="listitem" onClick={() => setInStockOnly(false)}
-                className="inline-flex items-center gap-1.5 h-7 px-3 bg-[#1a1a1a] border border-accent/40 text-xs font-bold text-accent hover:bg-accent hover:text-white transition-all">
-                In Stock <X size={11} />
+            {discount && (
+              <span className="text-sm font-black text-green-400">
+                Save Rs.{" "}
+                {(product.originalPrice! - product.price).toLocaleString()}
+              </span>
+            )}
+          </div>
+
+          {/* Stock */}
+          <div className="flex items-center gap-2 mb-5">
+            {inStock ? (
+              <>
+                <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+                <span className="text-sm text-green-400 font-bold">
+                  In Stock — Ships within 24hrs
+                </span>
+              </>
+            ) : (
+              <>
+                <span className="w-2 h-2 rounded-full bg-red-500" />
+                <span className="text-sm text-red-400 font-bold">
+                  Out of Stock
+                </span>
+              </>
+            )}
+          </div>
+
+          {product.description && (
+            <p className="text-[#777] text-sm leading-relaxed mb-6">
+              {product.description}
+            </p>
+          )}
+
+          {/* Quantity + Cart + Wishlist */}
+          <div className="flex items-center gap-3 mb-3">
+            <div className="flex items-center border border-[#222] overflow-hidden">
+              <button
+                onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                disabled={quantity <= 1}
+                className="w-10 h-10 flex items-center justify-center text-[#555] hover:text-white hover:bg-[#1a1a1a] transition-colors text-lg disabled:opacity-40"
+              >
+                −
               </button>
+              <span className="w-12 h-10 flex items-center justify-center text-sm font-bold border-x border-[#222]">
+                {quantity}
+              </span>
+              <button
+                onClick={() => setQuantity(quantity + 1)}
+                className="w-10 h-10 flex items-center justify-center text-[#555] hover:text-white hover:bg-[#1a1a1a] transition-colors text-lg"
+              >
+                +
+              </button>
+            </div>
+            <button
+              onClick={handleAddToCart}
+              disabled={!inStock}
+              className="flex-1 flex items-center justify-center gap-2 bg-accent hover:bg-accent-hover text-white font-black uppercase text-[11px] tracking-[0.15em] py-3 transition-colors disabled:opacity-40"
+            >
+              {addedToCart ? (
+                <>
+                  <Check size={15} /> Added!
+                </>
+              ) : (
+                <>
+                  <ShoppingCart size={15} /> Add to Cart
+                </>
+              )}
+            </button>
+            <button
+              onClick={handleWishlist}
+              className="w-11 h-11 flex items-center justify-center border border-[#222] hover:border-accent transition-colors"
+              aria-label={
+                inWishlist ? "Remove from wishlist" : "Add to wishlist"
+              }
+            >
+              <Heart
+                size={18}
+                className={
+                  inWishlist ? "fill-accent text-accent" : "text-[#555]"
+                }
+              />
+            </button>
+          </div>
+
+          <Link
+            href="/cart"
+            className="w-full flex items-center justify-center gap-2 border border-[#333] hover:border-accent text-[#aaa] hover:text-white font-black uppercase text-[11px] tracking-[0.15em] py-3 transition-colors mb-6"
+          >
+            Buy Now
+          </Link>
+
+          <div className="grid grid-cols-3 gap-3 py-4 border-t border-[#1e1e1e]">
+            {[
+              { icon: Shield, label: "Genuine Product" },
+              { icon: Truck, label: "Fast Delivery" },
+              { icon: RotateCcw, label: "15-Day Returns" },
+            ].map(({ icon: Icon, label }) => (
+              <div
+                key={label}
+                className="flex flex-col items-center gap-1.5 text-center"
+              >
+                <div className="w-9 h-9 bg-[#1a1a1a] flex items-center justify-center">
+                  <Icon size={16} className="text-accent" />
+                </div>
+                <span className="text-[10px] text-[#555] font-bold uppercase tracking-wider">
+                  {label}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Specs / Reviews Tabs */}
+      <div className="mb-16">
+        <div className="flex border-b border-[#1e1e1e] mb-6">
+          {(["specs", "reviews"] as const).map((tab) => (
+            <button
+              key={tab}
+              onClick={() => setActiveTab(tab)}
+              className={twMerge(
+                "px-6 py-3 text-[11px] font-black uppercase tracking-[0.15em] border-b-2 transition-colors -mb-px",
+                activeTab === tab
+                  ? "border-accent text-accent"
+                  : "border-transparent text-[#555] hover:text-white",
+              )}
+            >
+              {tab === "reviews"
+                ? `Reviews (${totalReviews || product.reviewCount})`
+                : "Specifications"}
+            </button>
+          ))}
+        </div>
+
+        {/* Specs tab */}
+        {activeTab === "specs" && (
+          <div className="bg-[#0f0f0f] border border-[#1e1e1e] overflow-hidden">
+            {product.specs && Object.entries(product.specs).length > 0 ? (
+              Object.entries(product.specs).map(([key, value], idx) => (
+                <div
+                  key={key}
+                  className={`grid grid-cols-2 sm:grid-cols-3 px-5 py-3.5 text-sm ${idx % 2 === 0 ? "bg-[#0f0f0f]" : "bg-[#0a0a0a]"}`}
+                >
+                  <span className="text-[#555] font-black uppercase text-[10px] tracking-[0.1em]">
+                    {key}
+                  </span>
+                  <span className="text-white sm:col-span-2">{value}</span>
+                </div>
+              ))
+            ) : (
+              <p className="px-5 py-8 text-[#555] text-sm text-center">
+                No specifications available.
+              </p>
+            )}
+          </div>
+        )}
+
+        {/* Reviews tab */}
+        {activeTab === "reviews" && (
+          <div className="space-y-6">
+            {/* Summary */}
+            {totalReviews > 0 && (
+              <div className="flex items-center gap-6 bg-[#0f0f0f] border border-[#1e1e1e] p-6">
+                <div className="text-center">
+                  <div className="text-5xl font-black text-white">
+                    {avgRating.toFixed(1)}
+                  </div>
+                  <StarRating
+                    rating={avgRating}
+                    size={14}
+                    className="justify-center mt-1"
+                  />
+                  <div className="text-[#555] text-xs mt-1">
+                    {totalReviews} review{totalReviews !== 1 ? "s" : ""}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Submit form */}
+            <div className="bg-[#0f0f0f] border border-[#1e1e1e] p-6">
+              <h3 className="text-[11px] font-black uppercase tracking-[0.2em] text-white mb-4">
+                Write a Review
+              </h3>
+              {submitOk && (
+                <div className="mb-4 px-4 py-3 bg-green-500/10 border border-green-500/20 text-green-400 text-sm">
+                  Review submitted successfully!
+                </div>
+              )}
+              {submitErr && (
+                <div className="mb-4 px-4 py-3 bg-red-500/10 border border-red-500/20 text-red-400 text-sm">
+                  {submitErr}
+                </div>
+              )}
+              <form onSubmit={handleReviewSubmit} className="space-y-4">
+                <div>
+                  <label className="block text-[10px] font-black uppercase tracking-[0.15em] text-[#555] mb-2">
+                    Rating *
+                  </label>
+                  <div className="flex gap-1">
+                    {[1, 2, 3, 4, 5].map((s) => (
+                      <button
+                        key={s}
+                        type="button"
+                        onMouseEnter={() => setHovered(s)}
+                        onMouseLeave={() => setHovered(0)}
+                        onClick={() => setRating(s)}
+                      >
+                        <Star
+                          size={24}
+                          className={`transition-colors ${s <= (hovered || rating) ? "fill-accent text-accent" : "text-[#333]"}`}
+                        />
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-[10px] font-black uppercase tracking-[0.15em] text-[#555] mb-2">
+                    Comment * (min 10 chars)
+                  </label>
+                  <textarea
+                    value={comment}
+                    onChange={(e) => setComment(e.target.value)}
+                    rows={4}
+                    placeholder="Share your experience with this product…"
+                    className="w-full px-3 py-2.5 bg-[#0a0a0a] border border-[#222] text-white text-sm placeholder:text-[#333] focus:outline-none focus:border-accent transition-colors resize-none"
+                  />
+                  <p className="text-[10px] text-[#444] mt-1">
+                    {comment.length} / 500
+                  </p>
+                </div>
+                <button
+                  type="submit"
+                  disabled={submitting}
+                  className="bg-accent hover:bg-accent-hover text-white font-black uppercase text-[11px] tracking-[0.15em] px-8 py-3 transition-colors disabled:opacity-60"
+                >
+                  {submitting ? "Submitting…" : "Submit Review"}
+                </button>
+              </form>
+            </div>
+
+            {/* Review list */}
+            {reviewsLoading ? (
+              <div className="flex justify-center py-8">
+                <span className="h-6 w-6 rounded-full border-2 border-accent/30 border-t-accent animate-spin" />
+              </div>
+            ) : reviews.length === 0 ? (
+              <div className="text-center py-12 text-[#555]">
+                <Star size={40} className="mx-auto mb-3 text-[#222]" />
+                <p className="text-sm">No reviews yet. Be the first!</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {reviews.map((r) => (
+                  <article
+                    key={r._id}
+                    className="bg-[#0f0f0f] border border-[#1e1e1e] p-5"
+                  >
+                    <div className="flex items-start justify-between mb-3 gap-2">
+                      <div>
+                        <p className="font-black text-sm text-white">
+                          {r.userId?.name ?? r.userId?.username ?? "Anonymous"}
+                        </p>
+                        <p className="text-[10px] text-[#444] mt-0.5">
+                          {timeAgo(r.createdAt)}
+                        </p>
+                      </div>
+                      <StarRating rating={r.rating} size={13} />
+                    </div>
+                    <p className="text-sm text-[#888] leading-relaxed">
+                      {r.comment}
+                    </p>
+                  </article>
+                ))}
+              </div>
             )}
           </div>
         )}
       </div>
 
-      <div className="flex gap-8">
-        {/* Desktop sidebar */}
-        <div className="hidden lg:block w-60 shrink-0">
-          <div className="sticky top-24"><Sidebar /></div>
-        </div>
+      {/* Community Problems & Solutions */}
+      <CommunityIssues productId={product.id} />
 
-        {/* Main content */}
-        <div className="flex-1 min-w-0">
-          {/* Toolbar */}
-          <div className="flex items-center gap-3 mb-5 flex-wrap">
-            <Button variant="secondary" size="sm" className="lg:hidden"
-              onClick={() => setSidebarOpen(true)} aria-expanded={sidebarOpen}>
-              <SlidersHorizontal size={15} />
-              Filters
-              {activeFilterCount > 0 && <Badge variant="accent" className="ml-1">{activeFilterCount}</Badge>}
-            </Button>
-
-            <div className="relative ml-auto">
-              <select value={sortBy} onChange={(e) => setSortBy(e.target.value)}
-                className="h-9 pl-3 pr-8 bg-surface border border-border rounded-md text-sm text-white focus:outline-none focus:ring-2 focus:ring-accent appearance-none cursor-pointer"
-                aria-label="Sort products">
-                {SORT_OPTIONS.map((opt) => (
-                  <option key={opt.value} value={opt.value}>{opt.label}</option>
-                ))}
-              </select>
-              <ChevronDown size={14} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted pointer-events-none" />
-            </div>
-
-            <div className="flex border border-border rounded-md overflow-hidden">
-              {(["grid", "list"] as const).map((mode) => (
-                <button key={mode} onClick={() => setViewMode(mode)}
-                  className={twMerge("w-9 h-9 flex items-center justify-center transition-colors",
-                    viewMode === mode ? "bg-accent text-white" : "text-muted hover:text-white hover:bg-surface")}
-                  aria-label={`${mode} view`} aria-pressed={viewMode === mode}>
-                  {mode === "grid" ? <LayoutGrid size={15} /> : <List size={15} />}
-                </button>
-              ))}
-            </div>
+      {/* Related products */}
+      {related.length > 0 && (
+        <section className="mt-16">
+          <h2 className="text-xl font-black uppercase tracking-tight text-white mb-5">
+            More in {product.category}
+          </h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {related.map((p) => (
+              <ProductCard key={p.id} product={p} />
+            ))}
           </div>
-
-          {/* Product grid */}
-          {filteredProducts.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-24 text-center">
-              <div className="text-5xl mb-4">🔍</div>
-              <h3 className="text-lg font-semibold mb-2">No products found</h3>
-              <p className="text-muted text-sm mb-6">Try adjusting your search or filters</p>
-              <Button variant="secondary" onClick={clearFilters}>Clear All Filters</Button>
-            </div>
-          ) : (
-            <div className={twMerge(
-              viewMode === "grid"
-                ? "grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4"
-                : "flex flex-col gap-4"
-            )}>
-              {filteredProducts.map((p) => <ProductCard key={p.id} product={p} />)}
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Mobile filter drawer */}
-      {sidebarOpen && (
-        <div className="fixed inset-0 z-50 lg:hidden" role="dialog" aria-modal="true" aria-label="Filters">
-          <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={() => setSidebarOpen(false)} />
-          <div className="absolute right-0 top-0 bottom-0 w-80 max-w-full bg-surface-2 border-l border-border overflow-y-auto">
-            <div className="flex items-center justify-between p-4 border-b border-border sticky top-0 bg-surface-2">
-              <h2 className="font-semibold">Filters</h2>
-              <button onClick={() => setSidebarOpen(false)}
-                className="w-8 h-8 flex items-center justify-center rounded-md text-muted hover:text-white hover:bg-surface transition-colors"
-                aria-label="Close filters">
-                <X size={18} />
-              </button>
-            </div>
-            <div className="p-4"><Sidebar /></div>
-            <div className="p-4 border-t border-border sticky bottom-0 bg-surface-2">
-              <Button className="w-full" onClick={() => setSidebarOpen(false)}>
-                Show {filteredProducts.length} Results
-              </Button>
-            </div>
-          </div>
-        </div>
+        </section>
       )}
     </div>
   );
 }
-
