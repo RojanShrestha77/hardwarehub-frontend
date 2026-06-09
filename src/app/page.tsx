@@ -49,7 +49,7 @@ export default async function HomePage() {
       <Navbar />
       <main className="flex flex-col">
 
-        {/* ── HERO ──────────────────────────────────────────────────── */}
+        {/* -- HERO -------------------------------------------------------- */}
         <section className="relative min-h-screen flex items-center overflow-hidden bg-black">
 
           {/* background image — man positioned right, shifted up to show head */}
@@ -91,7 +91,7 @@ export default async function HomePage() {
           </div>
         </section>
 
-        {/* ── STATS BAR ─────────────────────────────────────────────── */}
+        {/* -- STATS BAR --------------------------------------------------- */}
         <section className="bg-[#111111] border-b border-[#222]">
           <div className={inner}>
             <div className="grid grid-cols-2 lg:grid-cols-4 divide-x divide-y lg:divide-y-0 divide-[#222]">
@@ -105,7 +105,7 @@ export default async function HomePage() {
           </div>
         </section>
 
-        {/* ── CATEGORIES ────────────────────────────────────────────── */}
+        {/* -- CATEGORIES -------------------------------------------------- */}
         <section className="py-12 bg-[#0a0a0a]">
           <div className={inner}>
             <div className="flex items-end justify-between mb-6">
@@ -171,7 +171,7 @@ export default async function HomePage() {
           </div>
         </section>
 
-        {/* ── SHOP BY TRADE ─────────────────────────────────────────── */}
+        {/* -- SHOP BY TRADE ----------------------------------------------- */}
         <section className="py-10 bg-[#080808] border-t border-[#1a1a1a]">
           <div className={inner}>
             <div className="flex items-end justify-between mb-6">
@@ -195,7 +195,7 @@ export default async function HomePage() {
           </div>
         </section>
 
-        {/* ── TOP TRADE DEALS ───────────────────────────────────────── */}
+        {/* -- TOP TRADE DEALS --------------------------------------------- */}
         <section className="py-10 bg-[#0d0d0d] border-t border-[#1a1a1a]">
           <div className={inner}>
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-5">
@@ -222,7 +222,7 @@ export default async function HomePage() {
           </div>
         </section>
 
-        {/* ── PRO TOOL RENTAL CTA ───────────────────────────────────── */}
+        {/* -- PRO TOOL RENTAL CTA ----------------------------------------- */}
         <section className="bg-accent py-10">
           <div className={`${inner} flex flex-col sm:flex-row items-center justify-between gap-6`}>
             <div className="flex items-center gap-5">
