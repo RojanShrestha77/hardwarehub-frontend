@@ -6,16 +6,17 @@ import { useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
 import {
   LayoutDashboard, Package, Users, Store, ShoppingBag,
-  Wrench, LogOut, ChevronRight,
+  Wrench, LogOut, ChevronRight, ClipboardList,
 } from "lucide-react";
 import { twMerge } from "tailwind-merge";
 
 const NAV = [
-  { href: "/admin",          label: "Dashboard", icon: LayoutDashboard },
-  { href: "/admin/orders",   label: "Orders",    icon: Package          },
-  { href: "/admin/users",    label: "Users",     icon: Users            },
-  { href: "/admin/sellers",  label: "Sellers",   icon: Store            },
-  { href: "/admin/products", label: "Products",  icon: ShoppingBag      },
+  { href: "/admin",              label: "Dashboard",    icon: LayoutDashboard },
+  { href: "/admin/orders",       label: "Orders",       icon: Package          },
+  { href: "/admin/users",        label: "Users",        icon: Users            },
+  { href: "/admin/sellers",      label: "Sellers",      icon: Store            },
+  { href: "/admin/products",     label: "Products",     icon: ShoppingBag      },
+  { href: "/admin/applications", label: "Applications", icon: ClipboardList    },
 ];
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {

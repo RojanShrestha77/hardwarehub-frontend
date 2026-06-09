@@ -25,10 +25,30 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
+  // Seller application status — any authenticated user (pending applicants are still role="user")
+  if (pathname === "/seller/status") {
+    if (!token) {
+      const loginUrl = new URL("/login", request.url);
+      loginUrl.searchParams.set("redirect", pathname);
+      return NextResponse.redirect(loginUrl);
+    }
+    return NextResponse.next();
+  }
+
   // Seller dashboard — must be logged in AND have seller role
   if (pathname.startsWith("/seller")) {
     if (!token || userRole !== "seller") {
       return NextResponse.redirect(new URL("/", request.url));
+    }
+    return NextResponse.next();
+  }
+
+  // Become a seller form — must be logged in
+  if (pathname === "/become-seller") {
+    if (!token) {
+      const loginUrl = new URL("/login", request.url);
+      loginUrl.searchParams.set("redirect", pathname);
+      return NextResponse.redirect(loginUrl);
     }
     return NextResponse.next();
   }

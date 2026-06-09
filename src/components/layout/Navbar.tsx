@@ -132,6 +132,18 @@ export function Navbar() {
               </Link>
             )}
 
+            {/* Become a Seller — only for regular users */}
+            {user?.role === "user" && (
+              <Link
+                href="/become-seller"
+                className="hidden sm:flex items-center gap-1.5 h-9 px-3 rounded-md border border-accent/40 text-accent text-sm font-bold hover:bg-accent hover:text-white transition-colors"
+                title="Become a Seller"
+              >
+                <Store size={14} />
+                Sell
+              </Link>
+            )}
+
             {/* Notifications */}
             {user && (
               <Link href="/notifications" className="relative flex items-center justify-center w-10 h-10 rounded-md text-muted hover:text-white hover:bg-surface transition-colors" aria-label="Notifications">
