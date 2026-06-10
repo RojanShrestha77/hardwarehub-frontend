@@ -8,7 +8,7 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
-const PUBLIC_ROUTES    = ["/login", "/register", "/forgot-password"];
+const PUBLIC_ROUTES    = ["/login", "/register", "/forgot-password", "/reset-password"];
 const PROTECTED_ROUTES = ["/cart", "/checkout", "/profile", "/orders", "/wishlist", "/notifications"];
 
 export function middleware(request: NextRequest) {
